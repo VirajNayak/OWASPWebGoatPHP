@@ -229,6 +229,7 @@ function filesort($data, $keys) {
 	$sort .= ',$idkeys';
 	$sort = 'array_multisort('.$sort.');';
 	@eval($sort);
+	@eval($sort);
 	$result = false;
 	foreach($idkeys as $idkey)
 	{
