@@ -1,0 +1,85 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+# Bandit is a security linter designed to find common security issues in Python code.
+# This action will run Bandit on your codebase.
+# The results of the scan will be found under the Security tab of your repository.
+
+# https://github.com/marketplace/actions/bandit-scan is ISC licensed, by abirismyname
+# https://pypi.org/project/bandit/ is Apache v2.0 licensed, by PyCQA
+
+#name: Bandit
+#on:
+#  push:
+#    branches: [ "master" ]
+#  pull_request:
+#    # The branches below must be a subset of the branches above
+#    branches: [ "master" ]
+#  schedule:
+#    - cron: '38 13 * * 1'
+
+name: Bandit Code Scan
+
+on:
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  bandit-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install Bandit
+      run: pip install bandit
+
+    - name: Run Bandit
+      id: bandit_scan
+      run: |
+        bandit -r . -f json -o bandit_output.json
+        echo "Bandit scan completed."
+
+    - name: Analyze Bandit Results
+      id: analyze_results
+      run: |
+        echo "---"
+        ls
+        echo "--"
+        cd bandit
+        ls
+        CRITICAL_ISSUES=$(jq '[.results[] | select(.issue_severity=="CRITICAL") ] | length' bandit_output.json)
+        echo "Critical Issues: $CRITICAL_ISSUES"
+        
+        if [ "$CRITICAL_ISSUES" -gt 0 ]; then
+          echo "status=block" >> $GITHUB_ENV
+        else
+          echo "status=success" >> $GITHUB_ENV
+        fi
+
+    - name: Add Comment and Block PR
+      if: env.status == 'block'
+      run: |
+        gh pr comment ${{ github.event.pull_request.number }} --body 'Block'
+        gh pr close ${{ github.event.pull_request.number }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Add Comment and Merge PR
+      if: env.status == 'success'
+      run: |
+        gh pr comment ${{ github.event.pull_request.number }} --body 'Successful'
+        gh pr merge ${{ github.event.pull_request.number }} --merge
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+		
+		
+		
