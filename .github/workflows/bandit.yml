@@ -49,6 +49,7 @@ jobs:
       run: |
         bandit -r . -f json -o bandit_output.json
         echo "Bandit scan completed."
+        echo $bandit_output.json
 
     - name: Analyze Bandit Results
       id: analyze_results
